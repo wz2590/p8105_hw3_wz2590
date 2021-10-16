@@ -1,0 +1,137 @@
+---
+title: "p8105_hw2_wz2590"
+output: github_document
+author: Weiheng Zhang
+---
+
+
+```{r}
+library(tidyverse)
+library(dplyr)
+library(p8105.datasets)
+
+knitr::opts_chunk$set(
+  fig.width = 6,
+  fig.asp = .6,
+  out.width = "90%"
+)
+
+theme_set(theme_minimal() + theme(legend.position = "bottom"))
+
+options(
+  ggplot2.continuous.colour = "viridis",
+  ggplot2.continuous.fill = "viridis"
+)
+
+scale_colour_discrete = scale_color_viridis_d
+scale_fill_discrete = scale_fill_viridis_d
+```
+
+
+## Problem 1
+
+Instacart is an online grocery service that allows people in NYC to shop online from local stores. 
+The "instacart" dataset contains contains 1,384,617 observations, where each observation represents a product from an order. There are 15 variables for each observation:  
+order_id: order identifier
+product_id: product identifier
+add_to_cart_order: order in which each product was added to cart
+reordered: 1 if this prodcut has been ordered by this user in the past, 0 otherwise
+user_id: customer identifier
+eval_set: which evaluation set this order belongs in (Note that the data for use in this class is exclusively from the “train” eval_set)
+order_number: the order sequence number for this user (1=first, n=nth)
+order_dow: the day of the week on which the order was placed
+order_hour_of_day: the hour of the day on which the order was placed
+days_since_prior_order: days since the last order, capped at 30, NA if order_number=1
+product_name: name of the product
+aisle_id: aisle identifier
+department_id: department identifier
+aisle: the name of the aisle
+department: the name of the department
+  
+  
+The key variable we will use for the following analysis is "aisle".
+
+```{r}
+data("instacart")
+```
+
+How many aisles are there, and which aisles are the most items ordered from?
+
+```{r}
+instacart %>% 
+  count(aisle) %>% 
+  arrange(desc(n)) %>% 
+  rename(count = n)
+```
+
+```{r fig.width=8,fig.height=8}
+instacart %>% 
+  count(aisle) %>% 
+  rename(count = n) %>% 
+  filter(count > 10000) %>% 
+  mutate(
+    aisle = factor(aisle),
+    aisle = fct_reorder(aisle, count)
+  ) %>% 
+  ggplot(aes(x = count, y = aisle)) +
+  geom_point() +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
+  xlab("Number of Items") + ylab("Aisles") +
+  labs(title = "Top 39 Aisles Number of Items Ordered For Each")
+```
+
+This is a table showing the three most popular items in each of the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”, Including the number of times each item is ordered.
+
+```{r instacart_table1}
+instacart %>% 
+  filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) %>% 
+  group_by(aisle) %>% 
+  count(product_name) %>% 
+  rename(ordered_times = n) %>% 
+  mutate(rank = min_rank(desc(ordered_times))) %>% 
+  filter(rank < 4) %>% 
+  arrange(aisle, rank) %>% 
+  select(aisle, product_name, ordered_times) %>% 
+  knitr::kable()
+```
+
+The following human-readable table shows the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week.
+
+```{r instacart_table2}
+instacart %>% 
+  filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>% 
+  group_by(product_name, order_dow) %>% 
+  summarise(mean_hour = mean(order_hour_of_day)) %>% 
+  pivot_wider(
+    names_from = order_dow,
+    values_from = mean_hour
+  ) %>% 
+  knitr::kable()
+```
+
+
+## Problem 2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
