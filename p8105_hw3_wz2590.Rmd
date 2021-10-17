@@ -236,11 +236,84 @@ brfss_clean %>%
     facet_grid(. ~ year)
 ```
 
+## Problem 3
+
+```{r}
+accel_data = read_csv("./data/accel_data.csv")
+```
+
+The accel_data contains five weeks of accelerator data collected on a 63 year-old male with BMI 25, who was admitted to the Advanced Cardiac Care Center of Columbia University Medical Center and diagnosed with congestive heart failure (CHF). The data can be downloaded here. In this spreadsheet, variables activity.* are the activity counts for each minute of a 24-hour day starting at midnight.  
+
+
+Load, tidy, and wrangle the data. The accel_data_clean dataset includes all originally observed variables and values; has useful variable names; includes a weekday vs weekend variable; and encodes data with reasonable variable classes. 
+
+```{r}
+accel_data_clean = accel_data %>% 
+  pivot_longer(
+    cols = activity.1:activity.1440,
+    names_to = "activity_number",
+    values_to = "activity_counts",
+    names_prefix = "activity.",
+  ) %>% 
+  mutate(
+    is_weekend = (day == "Saturday" | day == "Sunday")
+    )
+```
+
+The accel_data_clean dataset contains `r nrow(accel_data_clean)` observations and `r ncol(accel_data_clean)` variables.   
+The variables records these information for each observation: week count, day count, which day in a week, is it weekend or not, activity number(id), and counts of activity. 
 
 
 
 
+Traditional analyses of accelerometer data focus on the total activity over the day. Using the tidied dataset, we will aggregate accross minutes to create a total activity variable for each day, and create a table showing these totals.
 
+```{r}
+total_activity = 
+  accel_data_clean %>% 
+  group_by(day_id) %>% 
+  summarize(total_activity_counts = sum(activity_counts))
+
+knitr::kable(total_activity)
+```
+
+```{r}
+ggplot(total_activity, aes(x = day_id, y = total_activity_counts))+
+  geom_point() +
+  geom_col(position = "dodge") +
+  labs(
+    title = "Total Activity For Each Day_id",
+    x = "Day_id",
+    y = "Total Activity Counts"
+  )
+```
+
+As time passes day by day, the total activity counts are oscillating up and down. Generally, after the 23th day, there are more days with total activity counts less than 3.2e+0.5 comparing to the days before the 23th day.
+
+
+
+
+Accelerometer data allows the inspection activity over the course of the day. Now we will make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. 
+
+```{r fig.width = 8, fig.height = 4}
+accel_data_clean %>% 
+  mutate(activity_number = as.numeric(activity_number)) %>% 
+  group_by(day, activity_number) %>% 
+  summarize(avg_value = mean(activity_counts)) %>% 
+  ggplot(aes(x = activity_number, y = avg_value, color = day)) +
+  geom_smooth(se=FALSE) +
+  scale_x_discrete(limit = c(240,480,720,960,1200,1440), 
+                   labels=c("4", "8", "12", "16", "20", "24")) +
+  labs(
+    title = "Average 24 Hour Activity Time Courses for Each Day of the Week",
+    x = "Activity Number (hrs)",
+    y = "Average Activity Counts",
+    color = "Day of the Week"
+  )
+```
+
+
+The average acticity counts for all days in a week are at lowest during the time period of around 23:50 p.m. to 6:00 a.m, because at this period the test subject is sleeping and cannot move around frequently.   There are also significant higher peak of average activity counts at around 10:30 a.m of Thurdsay and around 21:00 p.m of Friday. This is probably because the test subject was doing some special activity (like doing exercises).
 
 
 
