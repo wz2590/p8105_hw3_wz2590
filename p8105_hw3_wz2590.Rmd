@@ -77,12 +77,12 @@ instacart %>%
   geom_point() +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
   xlab("Number of Items") + ylab("Aisles") +
-  labs(title = "Top 39 Aisles Number of Items Ordered For Each")
+  labs(title = "Top 39 Aisles Number of Items Ordered For Each Aisle")
 ```
 
 This is a table showing the three most popular items in each of the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”, Including the number of times each item is ordered.
 
-```{r instacart_table1}
+```{r}
 instacart %>% 
   filter(aisle %in% c("baking ingredients", "dog food care", "packaged vegetables fruits")) %>% 
   group_by(aisle) %>% 
@@ -112,15 +112,129 @@ instacart %>%
 
 ## Problem 2
 
+```{r}
+library(p8105.datasets)
+data("brfss_smart2010")
+```
+Behavioral Risk Factor Surveillance System (BRFSS) is a continuous, state-based surveillance system that collects information about modifiable risk factors for chronic diseases and other leading causes of death.  BRFSS data can be used to identify emerging health problems, establish and track health objectives, and develop and evaluate public health policies and programs. 
+
+The brfss_smart2010 dataset contains 134,203 observations and 23 variables, from year 2002 to year 2010. There is information on location, topic, question, response, and response number of each observation. The data is structured so that each (multiple-choice) response to each question is a separate row.
+
+
+Data cleaning:  
+Format the data to use appropriate variable names;  
+Focus on the “Overall Health” topic;  
+Include only responses from “Excellent” to “Poor”;  
+Organize responses as a factor taking levels ordered from “Poor” to “Excellent”.  
+```{r, warning = FALSE}
+brfss_clean = 
+  brfss_smart2010 %>% 
+  janitor::clean_names() %>% 
+  filter(topic == "Overall Health") %>% 
+  separate(locationdesc, into = c('state', 'location'), sep = ' - ') %>%
+  mutate(response = factor(response, levels = c("Poor", "Fair", "Good", "Very good", "Excellent"))) %>%
+  arrange(response) %>% 
+  #filter(response == "Excellent"  | response == "Very good" | response == "Good" | response == "Fair" | response == "Poor") %>% 
+  select(-locationabbr, -class, -topic,  -question, -c(confidence_limit_low:geo_location))
+
+brfss_clean %>% view()
+```
+
+
+```{r}
+states_2002 = brfss_clean %>% 
+  filter(year == "2002") %>% 
+  group_by(state) %>% 
+  distinct(location) %>% 
+  count(state) %>% 
+  filter(n >= 7)
+states_2002
+
+states_2010 = brfss_clean %>% 
+  filter(year == "2010") %>% 
+  group_by(state) %>% 
+  distinct(location) %>% 
+  count(state) %>% 
+  filter(n >= 7)
+states_2010
+```
+
+These states were observed at 7 or more locations in 2002: `r states_2002$state`  
+In 2010: `r states_2010$state`
+  
 
 
 
+Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
 
 
+  viridis::scale_color_viridis(
+    name = "State",
+    discrete = T
+  )
+
+```{r fig.width=10, fig.height=4}
+topResponses_info = brfss_clean %>% 
+  filter(response == "Excellent") %>% 
+  group_by(state, year) %>% 
+  summarise(mean_dataValue = mean(data_value, na.rm = T)) 
+topResponses_info 
 
 
+ggplot(topResponses_info, aes(x = year, y = mean_dataValue, color = state)) +
+  geom_line(alpha = .3, aes(group = state, color = state)) +
+  geom_point(alpha = .3, aes(group = state, color = state)) +
+  xlab("Year") + ylab("Mean data_value of Excellent Responses") +
+  labs(title = "Mean data_value of Excellent responses across locations within each state") +
+  theme(axis.text.x = element_text(size = 10), legend.position = "right") 
+
+```
 
 
+Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State.
+
+```{r}
+brfss_dist = brfss_clean %>% 
+  filter(year %in% c(2006,2010),
+         state == "NY") %>% 
+  group_by(year, response) %>% 
+  summarise(mean_data_value = mean(data_value, na.rm = T))
+brfss_dist
+```
+
+Histogram of mean data_value across all locations in NY, for each response level.
+```{r fig.width = 7, fig.height = 5}
+brfss_dist %>% 
+    ggplot(aes(x = response, y = mean_data_value, fill = response)) + 
+    geom_col(position = "dodge") + 
+    labs(
+        title = "Distribution of Mean data_value For Responses Among Locations in NY",
+        x = "Response Level",
+        y = "data_value") +
+    facet_grid(. ~ year)
+```
+
+
+Histogram of data_value, seperated for each location, for each response level.
+```{r fig.width = 8, fig.height = 6}
+brfss_clean %>% 
+    mutate(location = str_to_title(location)) %>% 
+    filter(
+        year %in% c(2006, 2010),
+        state == "NY") %>% 
+        group_by(year, location) %>%
+    ggplot(aes(x = response, y = data_value, fill = location)) + 
+    geom_col(position = "dodge") + 
+    viridis::scale_fill_viridis(
+      option = "mako",
+      name = "Location",
+      discrete = TRUE) +
+    labs(
+        title = "Distribution of data_value For Responses For Each Location in NY",
+        x = "Response Level",
+        y = "data_value") +
+    facet_grid(. ~ year)
+```
 
 
 
