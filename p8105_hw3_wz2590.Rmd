@@ -1,11 +1,11 @@
 ---
-title: "p8105_hw2_wz2590"
+title: "p8105_hw3_wz2590"
 output: github_document
 author: Weiheng Zhang
 ---
 
 
-```{r}
+```{r message = FALSE}
 library(tidyverse)
 library(dplyr)
 library(p8105.datasets)
@@ -30,32 +30,42 @@ scale_fill_discrete = scale_fill_viridis_d
 
 ## Problem 1
 
-Instacart is an online grocery service that allows people in NYC to shop online from local stores. 
-The "instacart" dataset contains contains 1,384,617 observations, where each observation represents a product from an order. There are 15 variables for each observation:  
-order_id: order identifier
-product_id: product identifier
-add_to_cart_order: order in which each product was added to cart
-reordered: 1 if this prodcut has been ordered by this user in the past, 0 otherwise
-user_id: customer identifier
-eval_set: which evaluation set this order belongs in (Note that the data for use in this class is exclusively from the “train” eval_set)
-order_number: the order sequence number for this user (1=first, n=nth)
-order_dow: the day of the week on which the order was placed
-order_hour_of_day: the hour of the day on which the order was placed
-days_since_prior_order: days since the last order, capped at 30, NA if order_number=1
-product_name: name of the product
-aisle_id: aisle identifier
-department_id: department identifier
-aisle: the name of the aisle
-department: the name of the department
-  
-  
-The key variable we will use for the following analysis is "aisle".
-
 ```{r}
 data("instacart")
 ```
 
-How many aisles are there, and which aisles are the most items ordered from?
+Instacart is an online grocery service that allows people in NYC to shop online from local stores. 
+The "instacart" dataset contains contains 1,384,617 observations, where each observation represents a product from an order. There are 15 variables for each observation:  
+order_id: order identifier  
+product_id: product identifier  
+add_to_cart_order: order in which each product was added to cart  
+reordered: 1 if this prodcut has been ordered by this user in the past, 0 otherwise  
+user_id: customer identifier  
+eval_set: which evaluation set this order belongs in  
+order_number: the order sequence number for this user (1=first, n=nth)  
+order_dow: the day of the week on which the order was placed  
+order_hour_of_day: the hour of the day on which the order was placed  
+days_since_prior_order: days since the last order, capped at 30, NA if order_number=1  
+product_name: name of the product  
+aisle_id: aisle identifier  
+department_id: department identifier  
+aisle: the name of the aisle  
+department: the name of the department  
+  
+Some example observations:
+```{r}
+instacart %>% 
+  slice(c(1,26,85)) %>% 
+  knitr::kable()
+```
+
+  
+  
+The key variable we will use for the following analysis is "aisle".
+
+
+
+
 
 ```{r}
 instacart %>% 
@@ -63,8 +73,11 @@ instacart %>%
   arrange(desc(n)) %>% 
   rename(count = n)
 ```
+There are 134 aisles in the dataset. The "fresh vegetables" is the aisle with most items ordered from.  
 
-```{r fig.width=8,fig.height=8}
+The following plots shows the number of items ordered in each aisle, limiting this to aisles with more than 10000 items ordered. Aisles on the top have more items ordered comparing to aisles on the bottom.
+
+```{r fig.width = 8,fig.height = 8, dpi = 300, warning = FALSE}
 instacart %>% 
   count(aisle) %>% 
   rename(count = n) %>% 
@@ -73,14 +86,17 @@ instacart %>%
     aisle = factor(aisle),
     aisle = fct_reorder(aisle, count)
   ) %>% 
-  ggplot(aes(x = count, y = aisle)) +
-  geom_point() +
+  ggplot() +
+  geom_histogram(
+    aes(x = count, y = aisle), 
+    stat = "identity") +
   scale_x_continuous(breaks = scales::pretty_breaks(n = 10)) +
-  xlab("Number of Items") + ylab("Aisles") +
-  labs(title = "Top 39 Aisles Number of Items Ordered For Each Aisle")
+  xlab("Number of Items") + 
+  ylab("Aisles") +
+  labs(title = "Top 39 Aisles With Number of Items Ordered For Each Aisle")
 ```
 
-This is a table showing the three most popular items in each of the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”, Including the number of times each item is ordered.
+The following is a table showing the three most popular items in each of the aisles “baking ingredients”, “dog food care”, and “packaged vegetables fruits”, including the number of times each item is ordered.
 
 ```{r}
 instacart %>% 
@@ -97,7 +113,7 @@ instacart %>%
 
 The following human-readable table shows the mean hour of the day at which Pink Lady Apples and Coffee Ice Cream are ordered on each day of the week.
 
-```{r instacart_table2}
+```{r message = FALSE, warning = FALSE}
 instacart %>% 
   filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>% 
   group_by(product_name, order_dow) %>% 
@@ -106,6 +122,14 @@ instacart %>%
     names_from = order_dow,
     values_from = mean_hour
   ) %>% 
+  rename("Product ↓ | Day →" = "product_name",
+         "Sun" = "0",
+         "Mon" = "1",
+         "Tue" = "2",
+         "Wed" = "3",
+         "Thur" = "4",
+         "Fri" = "5",
+         "Sat" = "6") %>% 
   knitr::kable()
 ```
 
@@ -116,11 +140,11 @@ instacart %>%
 library(p8105.datasets)
 data("brfss_smart2010")
 ```
-Behavioral Risk Factor Surveillance System (BRFSS) is a continuous, state-based surveillance system that collects information about modifiable risk factors for chronic diseases and other leading causes of death.  BRFSS data can be used to identify emerging health problems, establish and track health objectives, and develop and evaluate public health policies and programs. 
-
-The brfss_smart2010 dataset contains 134,203 observations and 23 variables, from year 2002 to year 2010. There is information on location, topic, question, response, and response number of each observation. The data is structured so that each (multiple-choice) response to each question is a separate row.
-
-
+Behavioral Risk Factor Surveillance System (BRFSS) is a continuous, state-based surveillance system that collects information about modifiable risk factors for chronic diseases and other leading causes of death.  BRFSS data can be used to identify emerging health problems, establish and track health objectives, and develop and evaluate public health policies and programs.   
+  
+The brfss_smart2010 dataset contains 134,203 survey observations, each with 23 variables, from year 2002 to year 2010. There is information on location, topic, question, response, and response number of each observation. The data is structured so that each (multiple-choice) response to each question is a separate row.  
+  
+  
 Data cleaning:  
 Format the data to use appropriate variable names;  
 Focus on the “Overall Health” topic;  
@@ -134,10 +158,10 @@ brfss_clean =
   separate(locationdesc, into = c('state', 'location'), sep = ' - ') %>%
   mutate(response = factor(response, levels = c("Poor", "Fair", "Good", "Very good", "Excellent"))) %>%
   arrange(response) %>% 
-  #filter(response == "Excellent"  | response == "Very good" | response == "Good" | response == "Fair" | response == "Poor") %>% 
+  filter(response %in% c("Excellent", "Very good", "Good", "Fair", "Poor")) %>% 
   select(-locationabbr, -class, -topic,  -question, -c(confidence_limit_low:geo_location))
 
-brfss_clean %>% view()
+#brfss_clean %>% view()
 ```
 
 
@@ -165,76 +189,48 @@ In 2010: `r states_2010$state`
 
 
 
-Construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. Make a “spaghetti” plot of this average value over time within a state (that is, make a plot showing a line for each state across years – the geom_line geometry and group aesthetic will help).
+Now we construct a dataset that is limited to Excellent responses, and contains, year, state, and a variable that averages the data_value across locations within a state. 
+We will make a “spaghetti” plot of this average value over time within a state.  
 
 
-  viridis::scale_color_viridis(
-    name = "State",
-    discrete = T
-  )
-
-```{r fig.width=10, fig.height=4}
+```{r fig.width = 10, fig.height = 4, dpi = 500, warning = FALSE}
 topResponses_info = brfss_clean %>% 
   filter(response == "Excellent") %>% 
   group_by(state, year) %>% 
   summarise(mean_dataValue = mean(data_value, na.rm = T)) 
-topResponses_info 
+#topResponses_info 
 
 
 ggplot(topResponses_info, aes(x = year, y = mean_dataValue, color = state)) +
-  geom_line(alpha = .3, aes(group = state, color = state)) +
-  geom_point(alpha = .3, aes(group = state, color = state)) +
+  geom_line(alpha = 0.5, size = 0.8, aes(group = state, color = state)) +
   xlab("Year") + ylab("Mean data_value of Excellent Responses") +
   labs(title = "Mean data_value of Excellent responses across locations within each state") +
-  theme(axis.text.x = element_text(size = 10), legend.position = "right") 
+  theme(axis.text.x = element_text(size = 10), legend.position = "right")
 
 ```
 
 
-Make a two-panel plot showing, for the years 2006, and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among locations in NY State.
+The following two-panel box-plot shows, for the years 2006 and 2010, distribution of data_value for responses (“Poor” to “Excellent”) among all locations in NY State.
 
 ```{r}
 brfss_dist = brfss_clean %>% 
   filter(year %in% c(2006,2010),
-         state == "NY") %>% 
-  group_by(year, response) %>% 
-  summarise(mean_data_value = mean(data_value, na.rm = T))
-brfss_dist
+         state == "NY")
 ```
 
-Histogram of mean data_value across all locations in NY, for each response level.
-```{r fig.width = 7, fig.height = 5}
+```{r fig.width = 7, fig.height = 5, dpi = 300}
 brfss_dist %>% 
-    ggplot(aes(x = response, y = mean_data_value, fill = response)) + 
-    geom_col(position = "dodge") + 
+    ggplot(aes(x = response, y = data_value, fill = response)) + 
+    geom_boxplot() + 
     labs(
-        title = "Distribution of Mean data_value For Responses Among Locations in NY",
+        title = "Distribution of data_value Form Responses Among Locations in NY",
         x = "Response Level",
         y = "data_value") +
     facet_grid(. ~ year)
 ```
+Just from this plot, we cannot say there are significant differences in data_value of each response between year 2006 and year 2010.
 
 
-Histogram of data_value, seperated for each location, for each response level.
-```{r fig.width = 8, fig.height = 6}
-brfss_clean %>% 
-    mutate(location = str_to_title(location)) %>% 
-    filter(
-        year %in% c(2006, 2010),
-        state == "NY") %>% 
-        group_by(year, location) %>%
-    ggplot(aes(x = response, y = data_value, fill = location)) + 
-    geom_col(position = "dodge") + 
-    viridis::scale_fill_viridis(
-      option = "mako",
-      name = "Location",
-      discrete = TRUE) +
-    labs(
-        title = "Distribution of data_value For Responses For Each Location in NY",
-        x = "Response Level",
-        y = "data_value") +
-    facet_grid(. ~ year)
-```
 
 ## Problem 3
 
@@ -245,7 +241,7 @@ accel_data = read_csv("./data/accel_data.csv")
 The accel_data contains five weeks of accelerator data collected on a 63 year-old male with BMI 25, who was admitted to the Advanced Cardiac Care Center of Columbia University Medical Center and diagnosed with congestive heart failure (CHF). The data can be downloaded here. In this spreadsheet, variables activity.* are the activity counts for each minute of a 24-hour day starting at midnight.  
 
 
-Load, tidy, and wrangle the data. The accel_data_clean dataset includes all originally observed variables and values; has useful variable names; includes a weekday vs weekend variable; and encodes data with reasonable variable classes. 
+We will first load, tidy, and wrangle the data. The accel_data_clean dataset includes all originally observed variables and values; has useful variable names; includes a weekday vs weekend variable; and encodes data with reasonable variable classes. 
 
 ```{r}
 accel_data_clean = accel_data %>% 
@@ -256,8 +252,10 @@ accel_data_clean = accel_data %>%
     names_prefix = "activity.",
   ) %>% 
   mutate(
-    is_weekend = (day == "Saturday" | day == "Sunday")
+    is_weekend = (day == "Saturday" | day == "Sunday"),
+    day = factor(day, levels = c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
     )
+
 ```
 
 The accel_data_clean dataset contains `r nrow(accel_data_clean)` observations and `r ncol(accel_data_clean)` variables.   
@@ -266,7 +264,7 @@ The variables records these information for each observation: week count, day co
 
 
 
-Traditional analyses of accelerometer data focus on the total activity over the day. Using the tidied dataset, we will aggregate accross minutes to create a total activity variable for each day, and create a table showing these totals.
+Traditional analyses of accelerometer data focus on the total activity over the day. Using the tidied dataset, we will aggregate across minutes to create a total activity variable for each day, and create a table showing these totals.
 
 ```{r}
 total_activity = 
@@ -277,15 +275,16 @@ total_activity =
 knitr::kable(total_activity)
 ```
 
-```{r}
+```{r dpi = 300}
 ggplot(total_activity, aes(x = day_id, y = total_activity_counts))+
   geom_point() +
-  geom_col(position = "dodge") +
+  geom_line(size = 1) +
   labs(
-    title = "Total Activity For Each Day_id",
-    x = "Day_id",
+    title = "Total Activity Counts For Each Day",
+    x = "day_id",
     y = "Total Activity Counts"
-  )
+  ) +
+  scale_x_continuous(breaks = scales::pretty_breaks(n = 15))
 ```
 
 As time passes day by day, the total activity counts are oscillating up and down. Generally, after the 23th day, there are more days with total activity counts less than 3.2e+0.5 comparing to the days before the 23th day.
@@ -295,25 +294,29 @@ As time passes day by day, the total activity counts are oscillating up and down
 
 Accelerometer data allows the inspection activity over the course of the day. Now we will make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. 
 
-```{r fig.width = 8, fig.height = 4}
+```{r fig.width = 8, fig.height = 4, dpi = 300, warning = FALSE}
 accel_data_clean %>% 
   mutate(activity_number = as.numeric(activity_number)) %>% 
   group_by(day, activity_number) %>% 
   summarize(avg_value = mean(activity_counts)) %>% 
   ggplot(aes(x = activity_number, y = avg_value, color = day)) +
-  geom_smooth(se=FALSE) +
-  scale_x_discrete(limit = c(240,480,720,960,1200,1440), 
-                   labels=c("4", "8", "12", "16", "20", "24")) +
+  geom_smooth() +
+  scale_x_continuous(
+    breaks = (0:23)*60 + 1,
+    labels = c(0:23),
+    name = "Hours in a Day"
+  ) + 
   labs(
     title = "Average 24 Hour Activity Time Courses for Each Day of the Week",
     x = "Activity Number (hrs)",
     y = "Average Activity Counts",
     color = "Day of the Week"
-  )
+  ) +
+  theme(legend.position = "right")
 ```
 
 
-The average acticity counts for all days in a week are at lowest during the time period of around 23:50 p.m. to 6:00 a.m, because at this period the test subject is sleeping and cannot move around frequently.   There are also significant higher peak of average activity counts at around 10:30 a.m of Thurdsay and around 21:00 p.m of Friday. This is probably because the test subject was doing some special activity (like doing exercises).
+The average activity counts for all days in a week are at lowest during the time period of around 23:50 p.m. to 6:00 a.m, because at this period the test subject is sleeping and cannot move around frequently.   There are also significant higher peaks of average activity counts at around 10:30 a.m of Thurdsay and around 21:00 p.m of Friday. This is probably because the test subject was doing some special activity (like doing exercises).
 
 
 
