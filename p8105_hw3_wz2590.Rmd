@@ -118,6 +118,7 @@ instacart %>%
   filter(product_name %in% c("Pink Lady Apples", "Coffee Ice Cream")) %>% 
   group_by(product_name, order_dow) %>% 
   summarise(mean_hour = mean(order_hour_of_day)) %>% 
+  mutate(mean_hour = round(mean_hour, 2)) %>% 
   pivot_wider(
     names_from = order_dow,
     values_from = mean_hour
@@ -193,7 +194,7 @@ Now we construct a dataset that is limited to Excellent responses, and contains,
 We will make a “spaghetti” plot of this average value over time within a state.  
 
 
-```{r fig.width = 10, fig.height = 4, dpi = 500, warning = FALSE}
+```{r fig.width = 10, fig.height = 4, dpi = 500, warning = FALSE, message = FALSE}
 topResponses_info = brfss_clean %>% 
   filter(response == "Excellent") %>% 
   group_by(state, year) %>% 
@@ -203,9 +204,11 @@ topResponses_info = brfss_clean %>%
 
 ggplot(topResponses_info, aes(x = year, y = mean_dataValue, color = state)) +
   geom_line(alpha = 0.5, size = 0.8, aes(group = state, color = state)) +
-  xlab("Year") + ylab("Mean data_value of Excellent Responses") +
-  labs(title = "Mean data_value of Excellent responses across locations within each state") +
-  theme(axis.text.x = element_text(size = 10), legend.position = "right")
+  labs(
+    title = "Mean data_value of Excellent responses across locations within each state",
+    x = "Year",
+    y = "Mean data_value of Excellent Responses") +
+  theme(legend.position = "right")
 
 ```
 
@@ -238,7 +241,7 @@ Just from this plot, we cannot say there are significant differences in data_val
 accel_data = read_csv("./data/accel_data.csv")
 ```
 
-The accel_data contains five weeks of accelerator data collected on a 63 year-old male with BMI 25, who was admitted to the Advanced Cardiac Care Center of Columbia University Medical Center and diagnosed with congestive heart failure (CHF). The data can be downloaded here. In this spreadsheet, variables activity.* are the activity counts for each minute of a 24-hour day starting at midnight.  
+The accel_data contains five weeks of accelerator data collected on a 63 year-old male with BMI 25, who was admitted to the Advanced Cardiac Care Center of Columbia University Medical Center and diagnosed with congestive heart failure (CHF).   
 
 
 We will first load, tidy, and wrangle the data. The accel_data_clean dataset includes all originally observed variables and values; has useful variable names; includes a weekday vs weekend variable; and encodes data with reasonable variable classes. 
@@ -254,47 +257,43 @@ accel_data_clean = accel_data %>%
   mutate(
     is_weekend = (day == "Saturday" | day == "Sunday"),
     day = factor(day, levels = c("Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"))
-    )
+  )
+
+accel_data_clean %>% view()
 
 ```
 
 The accel_data_clean dataset contains `r nrow(accel_data_clean)` observations and `r ncol(accel_data_clean)` variables.   
-The variables records these information for each observation: week count, day count, which day in a week, is it weekend or not, activity number(id), and counts of activity. 
+The variables records these information for each observation: week, day_id, which day in a week, is it weekend or not, activity number, and activity counts.   
 
 
 
 
 Traditional analyses of accelerometer data focus on the total activity over the day. Using the tidied dataset, we will aggregate across minutes to create a total activity variable for each day, and create a table showing these totals.
 
-```{r}
+```{r message = FALSE}
 total_activity = 
   accel_data_clean %>% 
-  group_by(day_id) %>% 
-  summarize(total_activity_counts = sum(activity_counts))
+  group_by(week, day) %>% 
+  summarise(total_activity = sum(activity_counts)) %>% 
+  pivot_wider(
+    names_from = "day", 
+    values_from = "total_activity"
+  )
 
 knitr::kable(total_activity)
 ```
 
-```{r dpi = 300}
-ggplot(total_activity, aes(x = day_id, y = total_activity_counts))+
-  geom_point() +
-  geom_line(size = 1) +
-  labs(
-    title = "Total Activity Counts For Each Day",
-    x = "day_id",
-    y = "Total Activity Counts"
-  ) +
-  scale_x_continuous(breaks = scales::pretty_breaks(n = 15))
-```
 
-As time passes day by day, the total activity counts are oscillating up and down. Generally, after the 23th day, there are more days with total activity counts less than 3.2e+0.5 comparing to the days before the 23th day.
+
+From the table, we can see that as time passes day by day, the total activity counts were oscillating up and down. And activity counts on weekends are relatively lower than the counts on weekdays. 
 
 
 
 
 Accelerometer data allows the inspection activity over the course of the day. Now we will make a single-panel plot that shows the 24-hour activity time courses for each day and use color to indicate day of the week. 
 
-```{r fig.width = 8, fig.height = 4, dpi = 300, warning = FALSE}
+```{r fig.width = 8, fig.height = 4, dpi = 300, warning = FALSE, message = FALSE}
 accel_data_clean %>% 
   mutate(activity_number = as.numeric(activity_number)) %>% 
   group_by(day, activity_number) %>% 
@@ -316,7 +315,8 @@ accel_data_clean %>%
 ```
 
 
-The average activity counts for all days in a week are at lowest during the time period of around 23:50 p.m. to 6:00 a.m, because at this period the test subject is sleeping and cannot move around frequently.   There are also significant higher peaks of average activity counts at around 10:30 a.m of Thurdsay and around 21:00 p.m of Friday. This is probably because the test subject was doing some special activity (like doing exercises).
+The average activity counts for all days in a week are the lowest during the time period of around 23:50 p.m. to 6:00 a.m, because at this period the test subject is sleeping and cannot move around frequently.  
+There are also significant higher peaks of average activity counts at around 10:30 a.m of Sunday and around 21:00 p.m of Friday. This is probably because the test subject was doing some special activity (like doing exercises).
 
 
 
